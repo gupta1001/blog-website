@@ -2,12 +2,8 @@
 
 const express = require("express");
 const ejs = require("ejs");
-const lodash = require("lodash");
-const { lowerCase } = require("lodash");
-
-const homeStartingContent = "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing.";
-const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pellentesque. Dictumst vestibulum rhoncus est pellentesque elit ullamcorper. Non diam phasellus vestibulum lorem sed. Platea dictumst quisque sagittis purus sit. Egestas sed sed risus pretium quam vulputate dignissim suspendisse. Mauris in aliquam sem fringilla. Semper risus in hendrerit gravida rutrum quisque non tellus orci. Amet massa vitae tortor condimentum lacinia quis vel eros. Enim ut tellus elementum sagittis vitae. Mauris ultrices eros in cursus turpis massa tincidunt dui.";
-const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero.";
+const _ = require("lodash");
+const mongoose = require("mongoose");
 
 const app = express();
 
@@ -16,12 +12,50 @@ app.set('view engine', 'ejs');
 app.use(express.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-let posts = [];
+const aboutContent = "Hac habitasse platea dictumst vestibulum rhoncus est pellentesque. Dictumst vestibulum rhoncus est pellentesque elit ullamcorper. Non diam phasellus vestibulum lorem sed. Platea dictumst quisque sagittis purus sit. Egestas sed sed risus pretium quam vulputate dignissim suspendisse. Mauris in aliquam sem fringilla. Semper risus in hendrerit gravida rutrum quisque non tellus orci. Amet massa vitae tortor condimentum lacinia quis vel eros. Enim ut tellus elementum sagittis vitae. Mauris ultrices eros in cursus turpis massa tincidunt dui.";
+const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero.";
+
+//connect to the db
+mongoose.connect("mongodb://localhost:27017/blogDB");
+
+//creating a db schema
+const postSchema = mongoose.Schema({
+  postName: String,
+  postBody: String
+});
+
+const Post = mongoose.model("Post", postSchema);
+
+const post1 = new Post({
+  postName: "Home",
+  postBody: "Lacus vel facilisis volutpat est velit egestas dui id ornare. Semper auctor neque vitae tempus quam. Sit amet cursus sit amet dictum sit amet justo. Viverra tellus in hac habitasse. Imperdiet proin fermentum leo vel orci porta. Donec ultrices tincidunt arcu non sodales neque sodales ut. Mattis molestie a iaculis at erat pellentesque adipiscing. Magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies. Adipiscing elit ut aliquam purus sit amet luctus venenatis lectus. Ultrices vitae auctor eu augue ut lectus arcu bibendum at. Odio euismod lacinia at quis risus sed vulputate odio ut. Cursus mattis molestie a iaculis at erat pellentesque adipiscing."
+});
+
+const post2 = new Post({
+  postName: "Demo Post",
+  postBody: "Scelerisque eleifend donec pretium vulputate sapien. Rhoncus urna neque viverra justo nec ultrices. Arcu dui vivamus arcu felis bibendum. Consectetur adipiscing elit duis tristique. Risus viverra adipiscing at in tellus integer feugiat. Sapien nec sagittis aliquam malesuada bibendum arcu vitae. Consequat interdum varius sit amet mattis. Iaculis nunc sed augue lacus. Interdum posuere lorem ipsum dolor sit amet consectetur adipiscing elit. Pulvinar elementum integer enim neque. Ultrices gravida dictum fusce ut placerat orci nulla. Mauris in aliquam sem fringilla ut morbi tincidunt. Tortor posuere ac ut consequat semper viverra nam libero."
+});
+
+const defaultPosts = [post1, post2];
+// let posts = [];
 
 app.get("/", function (req, res) {
-  res.render("home", {
-    startingContentHome : homeStartingContent,
-    arrOfPostContent: posts
+  Post.find(function(err, foundPosts){
+    if(foundPosts.length === 0){
+      Post.insertMany(defaultPosts, function (err) {
+        if(err){
+          console.log(err);
+        }
+        else{
+          res.redirect("/");
+        }
+      });
+    }
+    else{
+      res.render("home", {
+        arrOfPostContent: foundPosts
+      });
+    }
   });
 });
 
@@ -42,17 +76,25 @@ app.get("/compose", function (req, res) {
 });
 
 app.get("/posts/:postName", function (req, res) {
-  const requestedTitle = req.params.postName;
-  console.log(requestedTitle);
-  posts.forEach(post => {
-    const storedTitle = post.title;
-    if (lowerCase(storedTitle) === lowerCase(requestedTitle)){
+  const postId = req.params.postName;
+  console.log(postId);
+  Post.find({_id: postId}, function (err, foundPost) {
+    if(!err){
       res.render("post", {
-        postTitle: post.title,
-        postBody: post.body
+        postTitle: foundPost[0].postName,
+        postBody: foundPost[0].postBody
       });
     }
-  });
+  })
+  // posts.forEach(post => {
+  //   const storedTitle = post.title;
+  //   if (_.lowerCase(storedTitle) === _.lowerCase(requestedTitle)){
+  //     res.render("post", {
+  //       postTitle: post.title,
+  //       postBody: post.body
+  //     });
+  //   }
+  // });
 });
 
 
@@ -66,11 +108,14 @@ app.get("/posts/:postName", function (req, res) {
 
 app.post("/compose", function (req, res) {
   //console.log(req.body.newTitle, req.body.newPost);
-  const post = {
-    title: req.body.newTitle,
-    body: req.body.newPost
-  }
-  posts.push(post);
+  postTitle = req.body.newTitle;
+  postContent = req.body.newPost;
+  const post = new Post({
+    postName: postTitle,
+    postBody: postContent
+  });
+  console.log(post);
+  post.save();
   res.redirect("/")
 })
 
